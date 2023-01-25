@@ -1,0 +1,15 @@
+/*
+ * Стили компонента App
+ */
+.App {
+  /* display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: 16px; */
+  padding-bottom: 24px;
+}
+
+.endMessage,
+.noFoundText {
+  margin: 24px auto 0;
+  font-size: 24px;
+}
