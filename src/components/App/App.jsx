@@ -1,6 +1,8 @@
-import { Component } from 'react';
+// import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import axios from 'axios';
+import * as Scroll from 'react-scroll';
 
 import Searchbar from 'components/Searchbar';
 import ImageGallery from 'components/ImageGallery';
@@ -10,109 +12,209 @@ import css from './app.module.css';
 const BASE_URL = 'https://pixabay.com/api/';
 const API_KEY = '31493701-066eddf0638dc5b7781a5a354';
 
-class App extends Component {
-  state = {
-    query: '',
-    page: 1,
-    items: [],
-    totalItems: 0,
-    loadingStatus: false,
-    noResult: false,
-  };
+var scroll = Scroll.animateScroll;
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (this.state.items.length > 12) {
-      const { height: cardHeight } = document
-        .querySelector('li')
-        .firstElementChild.getBoundingClientRect();
-      window.scrollBy({
-        top: cardHeight * 3,
-        behavior: 'smooth',
-      });
-    }
+export default function App() {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState(false);
+  const [noResult, setNoResult] = useState(false);
 
-    if (
-      prevState.query !== this.state.query ||
-      prevState.page !== this.state.page
-    ) {
-      if (prevState.query !== this.state.query) {
-        this.setState({ items: [] });
-      }
+  const fetch = async () => {
+    if (query) {
       try {
-        this.changeLoadingStatus(true);
+        setLoadingStatus(true);
+
         const response = await axios.get(
-          `${BASE_URL}?key=${API_KEY}&q=${this.state.query}&image_type=photo&orientation=horizontal&per_page=12&page=${this.state.page}`
+          `${BASE_URL}?key=${API_KEY}&q=${query}&image_type=photo&orientation=horizontal&per_page=12&page=${page}`
         );
 
-        this.onSearch(response.data.hits, response.data.totalHits);
+        onSearch(response.data.hits, response.data.totalHits);
       } catch (error) {
         console.log(error);
       } finally {
-        this.changeLoadingStatus(false);
+        setLoadingStatus(false);
       }
     }
-  }
-
-  handleFormSubmit = value => {
-    this.setState(prevState => ({
-      query: value,
-      page: 1,
-      // items: [],
-      noResult: false,
-    }));
   };
 
-  handleOnLoadMoreClick = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-  };
+  useEffect(() => {
+    fetch();
+    smoothScroll();
+  }, [query, page]);
 
-  onSearch = (response, totalItems) => {
-    this.setState(prevState => ({
-      items: [...prevState.items, ...response],
-      totalItems,
-      // query: '',
-    }));
+  const smoothScroll = () => {
+    if (items.length > 0) {
+      console.log('smoothScroll');
+      const { height: cardHeight } = document
+        .querySelector('li')
+        .firstElementChild.getBoundingClientRect();
 
-    if (response.length === 0) {
-      this.setState({ noResult: true });
+      scroll.scrollMore(cardHeight);
     }
   };
 
-  changeLoadingStatus = status => {
-    this.setState({ loadingStatus: status });
+  const handleFormSubmit = value => {
+    if (query === value) {
+      return alert('Please enter a new search value');
+    }
+    setItems([]);
+    setQuery(value);
+    setPage(1);
+    setNoResult(false);
   };
 
-  render() {
-    const { query, page, items, loadingStatus, totalItems, noResult } =
-      this.state;
-    return (
-      <>
-        <ToastContainer autoClose={3000} />
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        <main id="main">
-          {noResult && (
-            <p className={css.noFoundText}>
-              Sorry. There is no images for <b>{query}</b>
-            </p>
-          )}
-          <ImageGallery
-            query={query}
-            page={page}
-            items={items}
-            loadingStatus={loadingStatus}
-          />
-          {items.length > 0 && items.length < totalItems && (
-            <Button onClick={this.handleOnLoadMoreClick} />
-          )}
-          {items.length > 0 && items.length >= totalItems && (
-            <p className={css.endMessage}>
-              Sorry. There is no more images for <b>{query}</b>
-            </p>
-          )}
-        </main>
-      </>
-    );
-  }
+  const onSearch = (response, totalItems) => {
+    setItems(prevState => [...prevState, ...response]);
+    setTotalItems(totalItems);
+
+    if (response.length === 0) {
+      setNoResult(true);
+    }
+  };
+
+  const handleOnLoadMoreClick = () => {
+    setPage(prevState => prevState + 1);
+  };
+
+  return (
+    <>
+      <ToastContainer autoClose={3000} />
+      <Searchbar onSubmit={handleFormSubmit} />
+      <main>
+        {noResult && (
+          <p className={css.noFoundText}>
+            Sorry. There is no images for <b>{query}</b>
+          </p>
+        )}
+        <ImageGallery
+          query={query}
+          page={page}
+          items={items}
+          loadingStatus={loadingStatus}
+        />
+        {items.length > 0 && items.length < totalItems && (
+          <Button onClick={handleOnLoadMoreClick} />
+        )}
+        {items.length > 0 && items.length >= totalItems && (
+          <p className={css.endMessage}>
+            Sorry. There is no more images for <b>{query}</b>
+          </p>
+        )}
+      </main>
+    </>
+  );
 }
 
-export default App;
+// class App extends Component {
+//   state = {
+//     query: '',
+//     page: 1,
+//     items: [],
+//     totalItems: 0,
+//     loadingStatus: false,
+//     noResult: false,
+//   };
+
+//   async componentDidUpdate(prevProps, prevState) {
+//     if (this.state.items.length > 12) {
+//       this.smoothScroll();
+//     }
+
+//     if (
+//       prevState.query !== this.state.query ||
+//       prevState.page !== this.state.page
+//     ) {
+//       if (prevState.query !== this.state.query) {
+//         this.setState({ items: [] });
+//       }
+//       try {
+//         this.changeLoadingStatus(true);
+//         const response = await axios.get(
+//           `${BASE_URL}?key=${API_KEY}&q=${this.state.query}&image_type=photo&orientation=horizontal&per_page=12&page=${this.state.page}`
+//         );
+
+//         this.onSearch(response.data.hits, response.data.totalHits);
+//       } catch (error) {
+//         console.log(error);
+//       } finally {
+//         this.changeLoadingStatus(false);
+//       }
+//     }
+//   }
+
+//   smoothScroll = () => {
+//     const { height: cardHeight } = document
+//       .querySelector('li')
+//       .firstElementChild.getBoundingClientRect();
+//     window.scrollBy({
+//       top: cardHeight * 2,
+//       behavior: 'smooth',
+//     });
+//   };
+
+//   handleFormSubmit = value => {
+//     this.setState(prevState => ({
+//       query: value,
+//       page: 1,
+//       // items: [],
+//       noResult: false,
+//     }));
+//   };
+
+//   handleOnLoadMoreClick = () => {
+//     this.setState(prevState => ({ page: prevState.page + 1 }));
+//   };
+
+//   onSearch = (response, totalItems) => {
+//     this.setState(prevState => ({
+//       items: [...prevState.items, ...response],
+//       totalItems,
+//       // query: '',
+//     }));
+
+//     if (response.length === 0) {
+//       this.setState({ noResult: true });
+//     }
+//   };
+
+//   changeLoadingStatus = status => {
+//     this.setState({ loadingStatus: status });
+//   };
+
+//   render() {
+//     const { query, page, items, loadingStatus, totalItems, noResult } =
+//       this.state;
+//     return (
+//       <>
+//         <ToastContainer autoClose={3000} />
+//         <Searchbar onSubmit={this.handleFormSubmit} />
+//         <main id="main">
+//           {noResult && (
+//             <p className={css.noFoundText}>
+//               Sorry. There is no images for <b>{query}</b>
+//             </p>
+//           )}
+//           <ImageGallery
+//             query={query}
+//             page={page}
+//             items={items}
+//             loadingStatus={loadingStatus}
+//           />
+//           {items.length > 0 && items.length < totalItems && (
+//             <Button onClick={this.handleOnLoadMoreClick} />
+//           )}
+//           {items.length > 0 && items.length >= totalItems && (
+//             <p className={css.endMessage}>
+//               Sorry. There is no more images for <b>{query}</b>
+//             </p>
+//           )}
+//         </main>
+//       </>
+//     );
+//   }
+// }
+
+// export default App;
