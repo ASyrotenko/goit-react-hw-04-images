@@ -28,7 +28,8 @@ body {
 }
 
 body.modalOpen {
-  overflow: hidden;
+  height: 100vh;
+  overflow-y: hidden;
 }
 
 img {
