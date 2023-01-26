@@ -1,18 +1,14 @@
 // import { Component } from 'react';
 import { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
-import axios from 'axios';
-import * as Scroll from 'react-scroll';
 
 import Searchbar from 'components/Searchbar';
 import ImageGallery from 'components/ImageGallery';
 import Button from 'components/Button';
 import css from './app.module.css';
 
-const BASE_URL = 'https://pixabay.com/api/';
-const API_KEY = '31493701-066eddf0638dc5b7781a5a354';
-
-var scroll = Scroll.animateScroll;
+import { getImages } from '../utils/api';
+import { smoothScroll } from 'components/utils/smoothScroll';
 
 export default function App() {
   const [query, setQuery] = useState('');
@@ -22,39 +18,10 @@ export default function App() {
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [noResult, setNoResult] = useState(false);
 
-  const fetch = async () => {
-    if (query) {
-      try {
-        setLoadingStatus(true);
-
-        const response = await axios.get(
-          `${BASE_URL}?key=${API_KEY}&q=${query}&image_type=photo&orientation=horizontal&per_page=12&page=${page}`
-        );
-
-        onSearch(response.data.hits, response.data.totalHits);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoadingStatus(false);
-      }
-    }
-  };
-
   useEffect(() => {
-    fetch();
-    smoothScroll();
+    getImages(query, page, setLoadingStatus, onSearch);
+    smoothScroll(page);
   }, [query, page]);
-
-  const smoothScroll = () => {
-    if (items.length > 0) {
-      console.log('smoothScroll');
-      const { height: cardHeight } = document
-        .querySelector('li')
-        .firstElementChild.getBoundingClientRect();
-
-      scroll.scrollMore(cardHeight);
-    }
-  };
 
   const handleFormSubmit = value => {
     if (query === value) {
@@ -89,12 +56,7 @@ export default function App() {
             Sorry. There is no images for <b>{query}</b>
           </p>
         )}
-        <ImageGallery
-          query={query}
-          page={page}
-          items={items}
-          loadingStatus={loadingStatus}
-        />
+        <ImageGallery items={items} loadingStatus={loadingStatus} />
         {items.length > 0 && items.length < totalItems && (
           <Button onClick={handleOnLoadMoreClick} />
         )}
